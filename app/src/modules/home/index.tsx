@@ -23,7 +23,7 @@ export default function HomeModule() {
   }, []);
 
   useEffect(() => {
-    if (!selectedProjectId) return;
+    if (!selectedProjectId) return setLoadingTasks(false);
     setTasks(undefined);
     setLoadingTasks(true);
 
