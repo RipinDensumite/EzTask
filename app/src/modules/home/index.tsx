@@ -1,61 +1,29 @@
-import { useEffect, useState } from "react";
-import type { ProjectResponse } from "../../api/types/Project";
-import ProjectRepository from "../../api/repositories/ProjectRepository";
-import type { TaskResponse } from "../../api/types/Task";
-import TaskRepository from "../../api/repositories/TaskRepository";
+import { useEffect } from "react";
 import CreateTaskUI from "../../components/create_task_ui";
+import { ProjectViewModel } from "../../viewModels/ProjectViewModel";
+import { TaskViewModel } from "../../viewModels/TaskViewModel";
 
 export default function HomeModule() {
-  const [projects, setProjects] = useState<ProjectResponse>();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null
-  );
-  const [loadingProject, setLoadingProject] = useState(true);
-  const [tasks, setTasks] = useState<TaskResponse>();
-  const [loadingTasks, setLoadingTasks] = useState(true);
-  const [deletingTask, setDeletingTask] = useState("");
+  const {
+    projects,
+    loadingProject,
+    selectedProjectId,
+    fetchProjects,
+    selectProject,
+  } = ProjectViewModel();
+
+  const {
+    tasks,
+    loadingTasks,
+    deletingTask,
+    handleDeleteTask,
+    fetchTasks,
+    addTask,
+  } = TaskViewModel();
 
   useEffect(() => {
-    ProjectRepository.getAll()
-      .then(setProjects)
-      .catch(console.error)
-      .finally(() => setLoadingProject(false));
-  }, []);
-
-  useEffect(() => {
-    if (!selectedProjectId) return setLoadingTasks(false);
-    setTasks(undefined);
-    setLoadingTasks(true);
-
-    TaskRepository.getAll(selectedProjectId)
-      .then(setTasks)
-      .catch(console.error)
-      .finally(() => setLoadingTasks(false));
+    fetchTasks(selectedProjectId);
   }, [selectedProjectId]);
-
-  const handleDeleteTask = async (taskId: string) => {
-    setDeletingTask(taskId);
-
-    const confirmed = confirm("Are you sure you want to delete this task?");
-
-    if (!confirmed) return setDeletingTask("");
-
-    try {
-      await TaskRepository.delete(taskId);
-      setTasks((currentTasks) =>
-        currentTasks
-          ? {
-              ...currentTasks,
-              items: currentTasks.items.filter((task) => task.id !== taskId),
-            }
-          : currentTasks
-      );
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setDeletingTask("");
-    }
-  };
 
   if (loadingProject) return <div className="p-4">Loading projects...</div>;
 
@@ -79,7 +47,7 @@ export default function HomeModule() {
                 className={`flex space-x-2 items-center p-2 rounded hover:bg-gray-100 cursor-pointer ${
                   project.id === selectedProjectId ? "bg-gray-200" : ""
                 }`}
-                onClick={() => setSelectedProjectId(project.id)}
+                onClick={() => selectProject(project.id)}
               >
                 {selectedProjectId === project.id ? (
                   <svg
@@ -113,20 +81,7 @@ export default function HomeModule() {
             <CreateTaskUI
               projectId={selectedProjectId as string}
               onCreated={(newTask) => {
-                setTasks((currentTasks) =>
-                  currentTasks
-                    ? {
-                        ...currentTasks,
-                        items: [newTask, ...currentTasks.items],
-                      }
-                    : {
-                        items: [newTask],
-                        page: 1,
-                        perPage: 10,
-                        totalItems: 1,
-                        totalPages: 1,
-                      }
-                );
+                addTask(newTask);
               }}
             />
           </div>
